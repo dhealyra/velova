@@ -10,7 +10,7 @@ class KendaraanMasuk extends Model
 
     public function kendaraan()
     {
-        return $this->belongsTo(DataKendaraan::class);
+        return $this->belongsTo(DataKendaraan::class, 'id_kendaraan');
     }
 
     public function kendaraankeluar()
