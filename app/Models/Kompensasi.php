@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kompensasi extends Model
 {
-    public $fillable = ['id_kendaraan_keluar', 'tipe_kerusakan', 'kompensasi_disetujui', 'nama_pemilik', 'keterangan'];
+    public $fillable = ['id_kendaraan_keluar', 'jenis_kompensasi', 'tipe_kompensasi', 'kompensasi_disetujui', 'nama_pemilik', 'keterangan', 'status_pengajuan'];
 
     public function kendaraanmasuk()
     {
-        return $this->belongsTo(KendaraanMasuk::class);
+        return $this->belongsTo(KendaraanMasuk::class, 'id_kendaraan_masuk');
     }
 
     public function pembayaran()

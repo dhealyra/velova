@@ -4,28 +4,32 @@ namespace Database\Seeders;
 
 use App\Models\KendaraanKeluar;
 use App\Models\KendaraanMasuk;
-use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Carbon\Carbon;
 
 class KendaraanKeluarSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $kendaraanMasuks = KendaraanMasuk::take(4)->get();
+        // Ambil 5 kendaraan yg masih parkir
+        $masuks = KendaraanMasuk::where('status_parkir', 0)->take(5)->get();
 
-        foreach ($kendaraanMasuks as $masuk) {
-            $waktuMasuk = Carbon::parse($masuk->waktu_masuk);
-            $waktuKeluar = $waktuMasuk->copy()->addMinutes(rand(10, 180)); // Random antara 10–180 menit
+        foreach ($masuks as $masuk) {
+            $waktuKeluar = Carbon::parse($masuk->waktu_masuk)->addMinutes(rand(30, 180));
+
+            // Status kondisi random
+            $kondisi = ['baik', 'rusak', 'kehilangan'][rand(0, 2)];
+            $sebabDenda = $kondisi === 'baik' ? 'tiket hilang' : ['tiket hilang', 'merusak', 'lainnya'][rand(0, 2)];
 
             KendaraanKeluar::create([
                 'id_kendaraan_masuk' => $masuk->id,
                 'waktu_keluar' => $waktuKeluar,
-                'status_kondisi' => ['baik', 'tiket hilang', 'rusak', 'merusak', 'kehilangan'][rand(0, 4)],
+                'status_kondisi' => $kondisi,
+                'sebab_denda' => $sebabDenda,
             ]);
+
+            // Update status parkir jadi 1 (keluar)
+            $masuk->update(['status_parkir' => 1]);
         }
     }
 }

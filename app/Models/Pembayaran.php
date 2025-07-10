@@ -6,21 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pembayaran extends Model
 {
-    public $fillable = ['id_kendaraan_masuk', 'id_kendaraan_keluar', 'id_kompensasi', 'total', 'pembayaran'];
+    public $fillable = ['id_kendaraan_masuk', 'id_kendaraan_keluar', 'id_kompensasi', 'denda', 'tarif', 'total', 'pembayaran'];
 
-    public function kendaraanmasuk()
+    public function kendaraanMasuk()
     {
-        return $this->belongsTo(KendaraanMasuk::class);
+        return $this->belongsTo(KendaraanMasuk::class,'id_kendaraan_masuk');
     }
 
     public function kendaraankeluar()
     {
-        return $this->belongsTo(KendaraanKeluar::class);
+        return $this->belongsTo(KendaraanKeluar::class, 'id_kendaraan_keluar');
     }
 
     public function kompensasi()
     {
-        return $this->belongsTo(Kompensasi::class);
+        return $this->belongsTo(Kompensasi::class, 'id_kompensasi');
     }
 
     public function keuangan()

@@ -21,8 +21,9 @@ class KeuanganSeeder extends Seeder
             Keuangan::create([
                 'jumlah' => $bayar->total,
                 'id_pembayaran' => $bayar->id,
-                'waktu_transaksi' => Carbon::now(), // atau bisa pakai $bayar->created_at
+                'waktu_transaksi' => $bayar->created_at, // biar konsisten
             ]);
         }
     }
+
 }

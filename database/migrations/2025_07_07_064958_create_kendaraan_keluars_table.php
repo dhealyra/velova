@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('id_kendaraan_masuk');
             $table->timestamp('waktu_keluar');
-            $table->enum('status_kondisi', ['baik', 'tiket hilang', 'rusak', 'merusak', 'kehilangan'])->default('baik');
+            $table->enum('status_kondisi', ['baik', 'rusak', 'kehilangan'])->default('baik');
+            $table->enum('sebab_denda', ['tiket hilang', 'merusak', 'lainnya'])->nullable();
             $table->foreign('id_kendaraan_masuk')->references('id')->on('kendaraan_masuks')->onDelete('cascade');
             $table->timestamps();
         });

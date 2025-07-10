@@ -2,38 +2,46 @@
 
 namespace Database\Seeders;
 
-use App\Models\Kompensasi;
-use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\KendaraanKeluar;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class KompensasiSeeder extends Seeder
-{
-    /**
-     * Run the database seeds.
-     */
-   public function run()
     {
-        DB::table('kompensasis')->insert([
-            [
-                'id_kendaraan_keluar' => 1,
-                'tingkat_kerusakan' => 'ringan',
-                'kompensasi_disetujui' => 25000.00,
-                'nama_pemilik' => 'Rizky Hidayat',
-                'keterangan' => 'Spion patah, tapi bisa dibetulin manual',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-            [
-                'id_kendaraan_keluar' => 2,
-                'tingkat_kerusakan' => 'berat',
-                'kompensasi_disetujui' => 150000.50,
-                'nama_pemilik' => 'Ayu Lestari',
-                'keterangan' => 'Body lecet parah & lampu pecah',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-        ]);
+        public function run()
+        {
+            $kendaraanRusak = KendaraanKeluar::where('status_kondisi', '!=', 'baik')->get();
+
+            foreach ($kendaraanRusak as $keluar) {
+                DB::table('kompensasis')->insert([
+                    'id_kendaraan_keluar' => $keluar->id,
+                    'jenis_kompensasi' => $this->getJenisKompensasi($keluar->sebab_denda),
+                    'tipe_kompensasi' => fake()->boolean(),
+                    'kompensasi_disetujui' => $this->hitungKompensasi($keluar->sebab_denda),
+                    'nama_pemilik' => fake()->name(),
+                    'keterangan' => 'Kerusakan karena ' . $keluar->sebab_denda,
+                    'status_pengajuan' => 'pending',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
+        private function getJenisKompensasi(string $sebab): string
+        {
+            return match ($sebab) {
+                'kehilangan' => 'kehilangan',
+                default => 'rusak',
+            };
+        }
+
+        private function hitungKompensasi(string $sebab): float
+        {
+            return match ($sebab) {
+                'tiket hilang' => 25000.00,
+                'merusak' => 125000.00,
+                'kehilangan' => 200000.00,
+                default => 0,
+            };
+        }
     }
-}

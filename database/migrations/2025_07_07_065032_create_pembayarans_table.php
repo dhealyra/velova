@@ -16,6 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('id_kendaraan_masuk');
             $table->unsignedBigInteger('id_kendaraan_keluar');
             $table->unsignedBigInteger('id_kompensasi')->nullable();
+            $table->decimal('denda', 10, 2)->nullable();
+            $table->decimal('tarif', 10, 2);
             $table->decimal('total', 10, 2);
             $table->enum('pembayaran', ['tunai', 'qrish', 'gratis'])->default('gratis');
             $table->foreign('id_kendaraan_masuk')->references('id')->on('kendaraan_masuks')->onDelete('cascade');

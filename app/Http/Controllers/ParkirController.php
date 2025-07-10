@@ -26,13 +26,13 @@ class ParkirController extends Controller
             'jenis_kendaraan' => 'required',
         ]);
 
-        // Cek plat / data kendaraan
+        // cek plat / data kendaraan
         $kendaraan = DataKendaraan::where('no_polisi', $req->plat_nomor)->first();
 
         // add data kendaraan
         if (!$kendaraan) {
             $kendaraan = new DataKendaraan();
-            $kendaraan->no_polisi = $req->no_polisi;
+            $kendaraan->no_polisi = $req->plat_nomor;
             $kendaraan->jenis_kendaraan = $req->jenis_kendaraan;
             $kendaraan->status_pemilik = 'tamu';
             $kendaraan->nama_pemilik = null;
@@ -47,15 +47,20 @@ class ParkirController extends Controller
             return redirect()->back()->with('error', 'Kendaraan ini masih terparkir!');
         }
 
-        // Kalau belum terparkir, input ke tabel KendaraanMasuk
         $parkir = new KendaraanMasuk();
         $parkir->id_kendaraan = $kendaraan->id;
         $parkir->waktu_masuk = now();
         $parkir->status_parkir = 0; // 0 = masih terparkir
         $parkir->save();
 
-        return redirect()->route('parkir.index')->with('success', 'Kendaraan berhasil masuk parkir!');
+        return redirect()->route('parkir.tiketMasuk', $parkir->id)->with('success', 'Kendaraan berhasil masuk parkir!');
     }
-    
+
+    public function tiketMasuk($id)
+    {
+        $data = KendaraanMasuk::with('kendaraan')->findOrFail($id);
+
+        return view('petugas.parkir.tiket', compact('data'));
+    }
 
 }

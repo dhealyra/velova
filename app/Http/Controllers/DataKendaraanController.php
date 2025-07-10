@@ -48,7 +48,7 @@ class DataKendaraanController extends Controller
             'status_pemilik' => 'required|in:dokter,suster,staff,tamu'
         ];
 
-        // Kalau jenisnya bukan sepeda, wajib isi no_polisi dan harus unik
+        // !polisi = no polisi uniq
         if ($request->jenis_kendaraan !== 'sepeda') {
             $rules['no_polisi'] = 'required|unique:data_kendaraans,no_polisi';
         }
