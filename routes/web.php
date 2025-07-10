@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParkirController;
 use App\Http\Controllers\DataKendaraanController;
+use App\Http\Controllers\StokParkirController;
 use App\Http\Controllers\TransaksiParkirController;
 
 // Landing page
@@ -24,6 +25,8 @@ Route::get('/home', [HomeController::class, 'index'])->name('home');
 Route::get('/lihat', function () {
     return view('layouts.admin');
 });
+
+Route::resource('stok-parkir', StokParkirController::class);
 
 // Kendaraan CRUD
 Route::resource('/kendaraan', DataKendaraanController::class);

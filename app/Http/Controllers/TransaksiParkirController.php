@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\DataKendaraan;
 use App\Models\KendaraanKeluar;
 use App\Models\KendaraanMasuk;
+use App\Models\Kompensasi;
 use App\Models\Pembayaran;
+use App\Models\StokParkir;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,21 +53,35 @@ class TransaksiParkirController extends Controller
             return redirect()->back()->with('error', 'Kendaraan tidak sedang terparkir!');
         }
 
+        // Tambahan: pastikan variabel $statusPemilik ada
+        $statusPemilik = $kendaraan->status_pemilik; // atau bisa diambil dari tempat lain kalau beda
+
+        $stokParkir = StokParkir::where('jenis_kendaraan', $kendaraan->jenis_kendaraan)
+            ->where('status_pemilik', $statusPemilik)
+            ->first();
+
+        if (!$stokParkir || $stokParkir->sisa_slot < 1) {
+            return redirect()->back()->with('error', 'Stok parkir penuh atau tidak tersedia.');
+        }
+
         $keluar = new KendaraanKeluar();
         $keluar->id_kendaraan_masuk = $parkir->id;
         $keluar->waktu_keluar = now();
+
         $keluar->status_kondisi = $req->has('kondisi')
-        ? (is_array($req->kondisi) ? implode(',', $req->kondisi) : $req->kondisi)
-        : 'baik';
+            ? (is_array($req->kondisi) ? implode(',', $req->kondisi) : $req->kondisi)
+            : 'baik';
+
         $keluar->sebab_denda = $req->has('sebab_denda')
-        ? (is_array($req->sebab_denda) ? implode(',', $req->sebab_denda) : $req->sebab_denda)
-        : null;
+            ? (is_array($req->sebab_denda) ? implode(',', $req->sebab_denda) : $req->sebab_denda)
+            : null;
 
         $keluar->save();
 
-        // update status parkir
         $parkir->status_parkir = 1;
         $parkir->save();
+
+        $stokParkir->decrement('sisa_slot');
 
         if ($keluar->status_kondisi === 'baik') {
             return $this->buatTransaksi($keluar->id, $req);
@@ -78,14 +94,60 @@ class TransaksiParkirController extends Controller
     {
         $kendaraanKeluar = KendaraanKeluar::findOrFail($idKeluar);
         $masuk = KendaraanMasuk::findOrFail($kendaraanKeluar->id_kendaraan_masuk);
+        $kendaraan = DataKendaraan::where('no_polisi', $masuk->plat_nomor)->first();
 
         $jamMasuk = Carbon::parse($masuk->waktu_masuk);
         $jamKeluar = Carbon::parse($kendaraanKeluar->waktu_keluar);
         $durasiJam = $jamMasuk->diffInHours($jamKeluar);
         $durasiJam = $durasiJam == 0 ? 1 : $durasiJam;
 
-        $tarif = $durasiJam * 2000;
+        // kompensasi?
+        $kompensasi = null;
+        if ($req->has('idKompensasi')) {
+            $kompensasi = Kompensasi::find($req->idKompensasi);
+        }
 
+        // tarif per jam
+        if ($kendaraan->status_pemilik === 'tamu') {
+            switch ($kendaraan->jenis_kendaraan) {
+                case 'mobil':
+                    $tarifPerJam = 5000;
+                    break;
+                case 'motor':
+                    $tarifPerJam = 3000;
+                    break;
+                case 'sepeda':
+                    $tarifPerJam = 0;
+                    break;
+                default:
+                    $tarifPerJam = 4000;
+                    break;
+            }
+        } else {
+            switch ($kendaraan->jenis_pemilik) {
+                case 'dokter':
+                    $tarifPerJam = 0;
+                    break;
+                case 'suster':
+                    $tarifPerJam = 1000;
+                    break;
+                case 'staff':
+                    $tarifPerJam = 2000;
+                    break;
+                default:
+                    $tarifPerJam = 2500;
+                    break;
+            }
+        }
+
+        $tarif = $durasiJam * $tarifPerJam;
+
+        // kompensasi?
+        if ($kompensasi && $kompensasi->status_pengajuan == 'disetujui') {
+            $tarif = 0;
+        }
+
+        // denda
         $denda = 0;
         if ($kendaraanKeluar->sebab_denda === 'tiket hilang') {
             $denda = 10000;
@@ -104,6 +166,7 @@ class TransaksiParkirController extends Controller
             'tarif' => $tarif,
             'denda' => $denda,
             'total' => $total,
+            'kompensasi' => $kompensasi,
         ]);
     }
 

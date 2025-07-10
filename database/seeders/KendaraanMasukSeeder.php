@@ -16,7 +16,7 @@ class KendaraanMasukSeeder extends Seeder
             KendaraanMasuk::create([
                 'waktu_masuk' => $waktuMasuk,
                 'id_kendaraan' => $i,
-                'status_parkir' => 0, // semua masih parkir, nanti 5 akan diubah lewat seeder keluar
+                'status_parkir' => 0,
                 'created_at' => $waktuMasuk,
             ]);
         }
