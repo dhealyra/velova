@@ -13,10 +13,17 @@ return new class extends Migration
     {
         Schema::create('keuangans', function (Blueprint $table) {
             $table->id();
-            $table->decimal('jumlah', 10, 2);
+            $table->enum('tipe', ['pendapatan', 'pengeluaran']);
+            $table->enum('sumber', ['parkir', 'kompensasi', 'operasional', 'lainnya']);
+            $table->text('deskripsi')->nullable();
+            $table->decimal('jumlah', 15, 2);
+            $table->date('tanggal');
+            $table->decimal('total_keuangan',10,2);
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->unsignedBigInteger('id_pembayaran');
-            $table->timestamp('waktu_transaksi');
             $table->foreign('id_pembayaran')->references('id')->on('pembayarans')->onDelete('cascade');
+
             $table->timestamps();
         });
     }

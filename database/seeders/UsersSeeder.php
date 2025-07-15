@@ -27,7 +27,7 @@ class UsersSeeder extends Seeder
             'name' => 'petugas',
             'email' => 'petugas@example.com',
             'password' => Hash::make('petugas123'),
-            'role' => 1,
+            'role' => 0,
         ]);
     }
 }

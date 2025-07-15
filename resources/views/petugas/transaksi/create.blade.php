@@ -10,7 +10,6 @@
             <form action="{{ route('kendaraan.keluar') }}" method="POST">
                 @csrf
 
-                {{-- No Polisi + Autocomplete --}}
                 <div class="input-group input-group-merge mb-4">
                     <span class="input-group-text"><i class="icon-base ri ri-car-line"></i></span>
                     <div class="form-floating form-floating-outline">
@@ -138,7 +137,7 @@
                 cancelButtonText: 'Tidak',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = "{{ route('transaksi.kompensasi.create', session('kompensasi_prompt')) }}";
+                    window.location.href = "{{ route('kompensasi.form', session('kompensasi_prompt')) }}";
                 } else {
                     window.location.href = "{{ route('transaksi.buat', session('kompensasi_prompt')) }}";
                 }

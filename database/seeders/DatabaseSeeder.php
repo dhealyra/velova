@@ -19,7 +19,8 @@ class DatabaseSeeder extends Seeder
             // KompensasiSeeder::class,
             // PembayaranSeeder::class,
             // KeuanganSeeder::class,
-            // UsersSeeder::class,
+            UsersSeeder::class,
+            StokParkirSeeder::class,
         ]);
 
     }

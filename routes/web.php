@@ -1,85 +1,86 @@
 <?php
 
-use App\Http\Controllers\CetakController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\CetakController;
 use App\Http\Controllers\ParkirController;
+use App\Http\Controllers\KompensasiController;
 use App\Http\Controllers\DataKendaraanController;
 use App\Http\Controllers\StokParkirController;
 use App\Http\Controllers\TransaksiParkirController;
+use App\Http\Middleware\RoleMiddleware;
 
-// Landing page
+// ==================== LANDING ====================
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Auth routes
+// ==================== AUTH ====================
 Auth::routes();
-
-// Dashboard setelah login
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-// Coba lihat layout admin
-Route::get('/lihat', function () {
-    return view('layouts.admin');
+// ==================== ADMIN ONLY ====================
+Route::middleware(['auth', RoleMiddleware::class.':1'])->prefix('admin')->name('admin.')->group(function () {
+
+    Route::resource('stok-parkir', StokParkirController::class);
+    Route::get('stok-parkir/export/pdf', [CetakController::class, 'stokParkirPdf'])->name('stok-parkir.export.pdf');
+    Route::get('stok-parkir/export/excel', [CetakController::class, 'stokParkirExcel'])->name('stok-parkir.export.excel');
+
+    Route::resource('kendaraan', DataKendaraanController::class);
+    Route::get('kendaraan/export/pdf', [CetakController::class, 'exportKendaraanPdf'])->name('kendaraan.export.pdf');
+    Route::get('kendaraan/export/excel', [CetakController::class, 'exportKendaraanExcel'])->name('kendaraan.export.excel');
+
+    Route::post('kompensasi/setujui/{id}', [KompensasiController::class, 'setujui'])->name('kompensasi.setujui');
+    Route::post('kompensasi/tolak/{id}', [KompensasiController::class, 'tolak'])->name('kompensasi.tolak');
 });
 
-Route::resource('stok-parkir', StokParkirController::class);
+// ==================== ADMIN & PETUGAS ====================
+Route::middleware(['auth', RoleMiddleware::class.':0,1'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/transaksi', [TransaksiParkirController::class, 'index'])->name('transaksi.index');
+});
 
-// Kendaraan CRUD
-Route::resource('/kendaraan', DataKendaraanController::class);
+// ==================== PARKIR (PETUGAS) ====================
+Route::middleware(['auth', RoleMiddleware::class.':0,1'])->group(function () {
+    Route::get('/parkir', [ParkirController::class, 'index'])->name('parkir.index');
+    Route::get('/parkir/form', fn() => view('petugas.parkir.create'))->name('parkir.form');
+    Route::post('/parkir/store', [ParkirController::class, 'create'])->name('parkir.store');
+    Route::get('/parkir/tiket/{id}', [ParkirController::class, 'tiketMasuk'])->name('parkir.tiketMasuk');
+    Route::get('/transaksi/tiket/{id}/pdf', [CetakController::class, 'cetakTiket'])->name('transaksi.tiket.pdf');
+    Route::get('/parkir/{id}/edit', [ParkirController::class, 'edit'])->name('parkir.edit');
+    Route::put('/parkir/{id}', [ParkirController::class, 'update'])->name('parkir.update');
+    Route::delete('/parkir/{id}', [ParkirController::class, 'destroy'])->name('parkir.destroy');
+    Route::get('/kendaraanmasuk/export/pdf', [CetakController::class, 'exportKendaraanMasukPdf'])->name('kendaraanmasuk.export.pdf');
+    Route::get('/kendaraanmasuk/export/excel', [CetakController::class, 'exportKendaraanMasukExcel'])->name('kendaraanmasuk.export.excel');
+});
 
-// ---------------------- PARKIR ---------------------- //
+// ==================== TRANSAKSI (PETUGAS & ADMIN) ====================
+Route::middleware(['auth', RoleMiddleware::class.':0,1'])->group(function () {
+    Route::get('/kendaraan-keluar', [TransaksiParkirController::class, 'keluarIndex'])->name('kendaraanKeluar.index');
+    Route::get('/autocomplete-plat', [TransaksiParkirController::class, 'autocompletePlat'])->name('autocomplete.plat');
+    Route::get('/kendaraan-keluar/form', fn() => view('petugas.transaksi.create'))->name('kendaraanKeluar.form');
+    Route::post('/kendaraan-keluar/save', [TransaksiParkirController::class, 'kendaraanKeluar'])->name('kendaraan.keluar');
+    Route::get('/kendaraan-keluar/export/pdf', [CetakController::class, 'exportKendaraanKeluarPDF'])->name('kendaraankeluar.export.pdf');
+    Route::get('/kendaraan-keluar/export/excel', [CetakController::class, 'exportKendaraanKeluarExcel'])->name('kendaraankeluar.export.excel');
 
-// Lihat data parkir
-Route::get('/parkir', [ParkirController::class, 'index'])->name('parkir.index');
+    Route::get('/transaksi', [TransaksiParkirController::class, 'index'])->name('transaksi.index');
+    Route::get('/transaksi/form', fn() => view('petugas.transaksi.transaksi'))->name('transaksi.form');
+    Route::get('/transaksi/{id}', [TransaksiParkirController::class, 'show'])->name('pembayaran.show');
+    Route::get('/transaksi/buat/{id}', [TransaksiParkirController::class, 'buatTransaksi'])->name('transaksi.buat');
+    Route::post('/transaksi/simpan', [TransaksiParkirController::class, 'prosesTransaksi'])->name('transaksi.simpan');
+    Route::get('/transaksi/struk/{id}/pdf', [CetakController::class, 'cetakStruk'])->name('transaksi.struk.pdf');
 
-// Form masukin kendaraan
-Route::get('/parkir/form', function () {
-    return view('petugas.parkir.create');
-})->name('parkir.form');
+    Route::get('/transaksi/export/pdf', [CetakController::class, 'exportKeuanganPDF'])->name('keuangan.export.pdf');
+    Route::get('/transaksi/export/excel', [CetakController::class, 'exportKeuanganExcel'])->name('keuangan.export.excel');
+});
 
-// Simpan data kendaraan masuk
-Route::post('/parkir/store', [ParkirController::class, 'create'])->name('parkir.store');
-
-// Cetak tiket masuk
-Route::get('/parkir/tiket/{id}', [ParkirController::class, 'tiketMasuk'])->name('parkir.tiketMasuk');
-
-// ---------------------- TRANSAKSI ---------------------- //
-
-// Autocomplete plat nomor (buat form)
-Route::get('/autocomplete-plat', [TransaksiParkirController::class, 'autocompletePlat'])->name('autocomplete.plat');
-
-// Form kendaraan keluar
-Route::get('/kendaraan-keluar/form', function () {
-    return view('petugas.transaksi.create');
-})->name('kendaraanKeluar.form');
-
-// Proses kendaraan keluar
-Route::post('/kendaraan-keluar', [TransaksiParkirController::class, 'kendaraanKeluar'])->name('kendaraan.keluar');
-
-// Tampilkan form kompensasi (jika ada denda)
-Route::get('/transaksi/kompensasi/{id}/create', [TransaksiParkirController::class, 'create'])->name('transaksi.kompensasi.create');
-
-// (Cadangan) Form kompensasi
-Route::get('/kompensasi/form', function () {
-    return view('petugas.transaksi.create');
-})->name('kompensasi.form');
-
-// // (Cadangan) Tampilan transaksi
-// Route::get('/transaksi/form', function () {
-//     return view('petugas.transaksi.transaksi');
-// })->name('transaksi.index');
-
-// Tampilkan detail pembayaran
-Route::get('/pembayaran/{id}', [TransaksiParkirController::class, 'show'])->name('pembayaran.show');
-Route::get('/transaksi/buat/{id}', [TransaksiParkirController::class, 'buatTransaksi'])->name('transaksi.buat');
-Route::post('/transaksi/simpan', [TransaksiParkirController::class, 'prosesTransaksi'])->name('transaksi.simpan');
-Route::get('/transaksi', [TransaksiParkirController::class, 'index'])->name('admin.transaksi.index');
-
-// cetak tiket
-Route::get('/transaksi/tiket/{id}/pdf', [CetakController::class, 'cetakTiket'])->name('transaksi.tiket.pdf');
-Route::get('/transaksi/struk/{id}/pdf', [CetakController::class, 'cetakStruk'])->name('transaksi.struk.pdf');
-
+// ==================== KOMPENSASI (PETUGAS & ADMIN) ====================
+Route::middleware(['auth', RoleMiddleware::class.':0,1'])->prefix('kompensasi')->name('kompensasi.')->group(function () {
+    Route::get('/', [KompensasiController::class, 'index'])->name('index');
+    Route::get('/form/{idKeluar}', [KompensasiController::class, 'form'])->name('form');
+    Route::post('/simpan', [KompensasiController::class, 'simpan'])->name('simpan');
+    Route::get('/edit/{id}', [KompensasiController::class, 'edit'])->name('edit');
+    Route::put('/update/{id}', [KompensasiController::class, 'update'])->name('update');
+    Route::delete('/hapus/{id}', [KompensasiController::class, 'destroy'])->name('hapus');
+    Route::get('/kompensasi/export/pdf', [CetakController::class, 'exportKompensasiPDF'])->name('kompensasi.export.pdf');
+});

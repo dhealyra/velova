@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('stok_parkirs', function (Blueprint $table) {
             $table->id();
             $table->enum('status_pemilik', ['tamu', 'staff'])->default('tamu');
-            $table->enum('jenis_kendaraan', ['mobil', 'motor', 'sepeda']);
+            $table->enum('jenis_kendaraan', ['mobil', 'motor', 'sepeda', 'lainnya']);
             $table->integer('kapasitas');
             $table->integer('sisa_slot');
             $table->timestamps();

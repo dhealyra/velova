@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Dashboard | Materio</title>
+    <title>Velova</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('admin/favicon_io/favicon.ico') }}" />
@@ -12,6 +12,8 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Remix Icon CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('admin/assets/vendor/fonts/iconify-icons.css') }}" />
 
@@ -54,8 +56,8 @@
           @include('layouts.admin.navbar')
 
           <!-- Page Content -->
-          <div class="content-wrapper">
-            <div class="container-xxl flex-grow-1 container-p-y">
+          <div class="content-wrapper flex justify-center items-center h-screen">
+            <div class="container-xxl container-p-y">
               <div class="row gy-6">
                 @yield('content')
               </div>

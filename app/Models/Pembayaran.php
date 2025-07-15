@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pembayaran extends Model
 {
-    public $fillable = ['id_kendaraan_masuk', 'id_kendaraan_keluar', 'id_kompensasi', 'denda', 'tarif', 'total', 'pembayaran'];
+    public $fillable = ['id_kendaraan_masuk', 'id_kendaraan_keluar', 'id_kompensasi', 'denda', 'kompensasi', 'tarif', 'total', 'keterangan', 'pembayaran', 'user_id'];
 
     public function kendaraanMasuk()
     {
@@ -27,4 +27,10 @@ class Pembayaran extends Model
     {
         return $this->hasOne(Pembayaran::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
 }

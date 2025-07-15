@@ -21,7 +21,24 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
+
+    public function pembayarans()
+    {
+        return $this->hasMany(Pembayaran::class);
+    }
+
+    public function kompensasis()
+    {
+        return $this->hasMany(Kompensasi::class);
+    }
+
+    public function keuangan()
+    {
+        return $this->hasMany(Keuangan::class);
+    }
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -45,4 +62,21 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+        /**
+     * Cek role user (satu role)
+     */
+    public function hasRole($role)
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Cek banyak role (misal: admin atau petugas)
+     */
+    public function hasAnyRole($roles)
+    {
+        return in_array($this->role, (array) $roles);
+    }
+
 }

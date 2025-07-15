@@ -5,21 +5,85 @@ namespace App\Http\Controllers;
 use App\Models\DataKendaraan;
 use App\Models\KendaraanKeluar;
 use App\Models\KendaraanMasuk;
+use App\Models\Keuangan;
 use App\Models\Kompensasi;
 use App\Models\Pembayaran;
 use App\Models\StokParkir;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // <= Tambahin ini biar auth()->id() gak merah
+use Illuminate\Support\Facades\Auth as FacadesAuth;
 use Illuminate\Support\Facades\DB;
 
 class TransaksiParkirController extends Controller
 {
-    public function index()
+    public function keluarIndex(Request $request)
     {
-        $transaksi = Pembayaran::with(['kendaraanMasuk.kendaraan', 'kendaraanKeluar']) ->latest()
-        ->paginate(5);
-        return view('admin.transaksi.index', compact('transaksi'));
+        $query = KendaraanKeluar::with('kendaraanMasuk.kendaraan');
+
+        if ($request->filled('search')) {
+            $query->whereHas('kendaraanMasuk.kendaraan', function ($q) use ($request) {
+                $q->where('no_polisi', 'like', '%' . $request->search . '%')
+                ->orWhere('nama_pemilik', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('jenis_kendaraan')) {
+            $query->whereHas('kendaraanMasuk.kendaraan', function ($q) use ($request) {
+                $q->where('jenis_kendaraan', $request->jenis_kendaraan);
+            });
+        }
+
+        if ($request->filled('status_kondisi')) {
+            $query->where('status_kondisi', $request->status_kondisi);
+        }
+
+        if ($request->filled('tanggal_awal') && $request->filled('tanggal_akhir')) {
+            $query->whereBetween('waktu_keluar', [
+                $request->tanggal_awal . ' 00:00:00',
+                $request->tanggal_akhir . ' 23:59:59',
+            ]);
+        }
+
+        $kendaraanKeluar = $query->latest()->paginate(10);
+
+        return view('kendaraankeluar', compact('kendaraanKeluar'));
     }
+
+
+    public function index(Request $request)
+    {
+        $query = Keuangan::with(['pembayaran.kendaraanMasuk.kendaraan', 'pembayaran.kendaraanKeluar']);
+
+        if ($request->filled('search')) {
+            $query->whereHas('pembayaran.kendaraanMasuk.kendaraan', function ($q) use ($request) {
+                $q->where('no_polisi', 'like', '%' . $request->search . '%')
+                ->orWhere('nama_pemilik', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('jenis_kendaraan')) {
+            $query->whereHas('pembayaran.kendaraanMasuk.kendaraan', function ($q) use ($request) {
+                $q->where('jenis_kendaraan', $request->jenis_kendaraan);
+            });
+        }
+
+        if ($request->filled('status_kondisi')) {
+            $query->whereHas('pembayaran.kendaraanKeluar', function ($q) use ($request) {
+                $q->where('status_kondisi', $request->status_kondisi);
+            });
+        }
+
+        if ($request->filled('tanggal_awal') && $request->filled('tanggal_akhir')) {
+            $query->whereBetween('tanggal', [$request->tanggal_awal, $request->tanggal_akhir]);
+        }
+
+        $keuangan = $query->latest()->paginate(10);
+
+        return view('transaksi', compact('keuangan'));
+    }
+
+
 
     public function autocompletePlat(Request $request)
     {
@@ -53,16 +117,11 @@ class TransaksiParkirController extends Controller
             return redirect()->back()->with('error', 'Kendaraan tidak sedang terparkir!');
         }
 
-        // Tambahan: pastikan variabel $statusPemilik ada
-        $statusPemilik = $kendaraan->status_pemilik; // atau bisa diambil dari tempat lain kalau beda
+        $statusPemilik = $kendaraan->status_pemilik === 'tamu' ? 'tamu' : 'staff';
 
         $stokParkir = StokParkir::where('jenis_kendaraan', $kendaraan->jenis_kendaraan)
             ->where('status_pemilik', $statusPemilik)
             ->first();
-
-        if (!$stokParkir || $stokParkir->sisa_slot < 1) {
-            return redirect()->back()->with('error', 'Stok parkir penuh atau tidak tersedia.');
-        }
 
         $keluar = new KendaraanKeluar();
         $keluar->id_kendaraan_masuk = $parkir->id;
@@ -101,61 +160,36 @@ class TransaksiParkirController extends Controller
         $durasiJam = $jamMasuk->diffInHours($jamKeluar);
         $durasiJam = $durasiJam == 0 ? 1 : $durasiJam;
 
-        // kompensasi?
         $kompensasi = null;
         if ($req->has('idKompensasi')) {
             $kompensasi = Kompensasi::find($req->idKompensasi);
         }
 
-        // tarif per jam
         if ($kendaraan->status_pemilik === 'tamu') {
             switch ($kendaraan->jenis_kendaraan) {
-                case 'mobil':
-                    $tarifPerJam = 5000;
-                    break;
-                case 'motor':
-                    $tarifPerJam = 3000;
-                    break;
-                case 'sepeda':
-                    $tarifPerJam = 0;
-                    break;
-                default:
-                    $tarifPerJam = 4000;
-                    break;
+                case 'mobil': $tarifPerJam = 5000; break;
+                case 'motor': $tarifPerJam = 3000; break;
+                case 'sepeda': $tarifPerJam = 0; break;
+                default: $tarifPerJam = 4000;
             }
         } else {
             switch ($kendaraan->jenis_pemilik) {
-                case 'dokter':
-                    $tarifPerJam = 0;
-                    break;
-                case 'suster':
-                    $tarifPerJam = 1000;
-                    break;
-                case 'staff':
-                    $tarifPerJam = 2000;
-                    break;
-                default:
-                    $tarifPerJam = 2500;
-                    break;
+                case 'dokter': $tarifPerJam = 0; break;
+                case 'suster': $tarifPerJam = 1000; break;
+                case 'staff': $tarifPerJam = 2000; break;
+                default: $tarifPerJam = 2500;
             }
         }
 
         $tarif = $durasiJam * $tarifPerJam;
 
-        // kompensasi?
         if ($kompensasi && $kompensasi->status_pengajuan == 'disetujui') {
             $tarif = 0;
         }
 
-        // denda
         $denda = 0;
         if ($kendaraanKeluar->sebab_denda === 'tiket hilang') {
             $denda = 10000;
-        } elseif ($req->has('denda_manual')) {
-            $req->validate([
-                'denda_manual' => 'nullable|numeric|min:0'
-            ]);
-            $denda = $req->denda_manual ?? 0;
         }
 
         $total = $tarif + $denda;
@@ -178,18 +212,57 @@ class TransaksiParkirController extends Controller
             'tarif' => 'required|numeric',
             'denda' => 'required|numeric',
             'total' => 'required|numeric',
-            'pembayaran' => 'required|in:tunai,gratis,qrish' // list metode yg valid
+            'pembayaran' => 'required|in:tunai,gratis,qrish',
+            'keterangan' => 'nullable|string'
         ]);
 
+        // Ambil data kompensasi jika ada
+        $kompensasi = Kompensasi::where('id_kendaraan_keluar', $req->id_kendaraan_keluar)
+            ->where('status_pengajuan', 'disetujui')
+            ->first();
+
+        $nilaiKompensasi = $kompensasi ? $kompensasi->kompensasi_disetujui : 0;
+
+        // Buat data pembayaran
         $pembayaran = Pembayaran::create([
             'id_kendaraan_masuk' => $req->id_kendaraan_masuk,
             'id_kendaraan_keluar' => $req->id_kendaraan_keluar,
-            'id_kompensasi' => null,
+            'id_kompensasi' => $kompensasi?->id,
             'tarif' => $req->tarif,
             'denda' => $req->denda,
+            'kompensasi' => $nilaiKompensasi,
             'total' => $req->total,
             'pembayaran' => $req->pembayaran,
+            'keterangan' => $req->keterangan,
+            'user_id' => Auth::id(),
         ]);
+
+        // Hitung selisih: jika negatif berarti rugi
+        $selisih = ($req->tarif + $req->denda) - $nilaiKompensasi;
+
+        if ($selisih < 0) {
+            Keuangan::create([
+                'tipe' => 'pengeluaran',
+                'sumber' => 'kompensasi',
+                'deskripsi' => 'Kompensasi melebihi tarif/denda',
+                'jumlah' => abs($selisih),
+                'tanggal' => now()->toDateString(),
+                'total_keuangan' => 0,
+                'user_id' => Auth::id(),
+                'id_pembayaran' => $pembayaran->id,
+            ]);
+        } else {
+            Keuangan::create([
+                'tipe' => 'pendapatan',
+                'sumber' => 'parkir',
+                'deskripsi' => 'Pembayaran parkir dan denda',
+                'jumlah' => $selisih,
+                'tanggal' => now()->toDateString(),
+                'total_keuangan' => 0,
+                'user_id' => Auth::id(),
+                'id_pembayaran' => $pembayaran->id,
+            ]);
+        }
 
         return redirect()->route('pembayaran.show', $pembayaran->id)->with('success', 'Pembayaran berhasil!');
     }
@@ -198,10 +271,10 @@ class TransaksiParkirController extends Controller
     {
         $data = Pembayaran::with([
             'kendaraanMasuk.kendaraan',
-            'kendaraanKeluar'
+            'kendaraanKeluar',
+            'user'
         ])->findOrFail($id);
 
         return view('petugas.transaksi.transaksi', compact('data'));
     }
-
 }

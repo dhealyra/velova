@@ -17,12 +17,16 @@ return new class extends Migration
             $table->unsignedBigInteger('id_kendaraan_keluar');
             $table->unsignedBigInteger('id_kompensasi')->nullable();
             $table->decimal('denda', 10, 2)->nullable();
+            $table->decimal('kompensasi', 10, 2)->nullable();
             $table->decimal('tarif', 10, 2);
             $table->decimal('total', 10, 2);
+            $table->text('keterangan')->nullable();
             $table->enum('pembayaran', ['tunai', 'qrish', 'gratis'])->default('gratis');
             $table->foreign('id_kendaraan_masuk')->references('id')->on('kendaraan_masuks')->onDelete('cascade');
             $table->foreign('id_kendaraan_keluar')->references('id')->on('kendaraan_keluars')->onDelete('cascade');
             $table->foreign('id_kompensasi')->references('id')->on('kompensasis')->onDelete('cascade');
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });
     }
